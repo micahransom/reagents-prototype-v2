@@ -1,0 +1,40 @@
+// Prisma schema for Abbott Prototype
+// Database: Vercel Postgres
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_DATABASE_URL") // Prisma Accelerate connection
+}
+
+enum ItemType {
+  BASE_REAGENT
+  COMPOSITE_REAGENT
+  THERMOCYCLER
+}
+
+model Item {
+  id              String   @id @default(cuid())
+  type            ItemType
+  name            String
+  categories      String[] // Array of category names/tags
+  timesReferenced Int      @default(0)
+  
+  // Type-specific fields
+  lotNumber       String?  // For composite reagents
+  reagents        Json?    // For composite reagents - array of ReagentRow
+  instrumentId    String?  // For thermocyclers
+  model           String?  // For thermocyclers
+  
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([type])
+  @@index([categories])
+  @@map("items")
+}
+
