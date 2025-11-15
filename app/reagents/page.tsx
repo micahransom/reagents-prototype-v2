@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Search, ChevronRight, ChevronDown, Plus, ListFilter } from "lucide-react";
+import { Search, ChevronRight, ChevronDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import Navigation from "@/components/navigation";
 import { Item, ItemType } from "@/lib/types";
-import { getAllItems, deleteItem } from "@/lib/mock-db/db-helpers";
+import { getAllItems } from "@/lib/mock-db/db-helpers";
 import CreationMenu from "@/components/creation-menu";
 import CreateBaseReagentModal from "@/components/modals/create-base-reagent-modal";
 import CreateCompositeReagentModal from "@/components/modals/create-composite-reagent-modal";
@@ -109,17 +109,6 @@ export default function ReagentsPage() {
         return 'Compound Reagents';
       case 'THERMOCYCLER':
         return 'Thermocyclers';
-    }
-  };
-
-  const getTypeLabel = (type: ItemType): string => {
-    switch (type) {
-      case 'BASE_REAGENT':
-        return 'Base Reagent';
-      case 'COMPOSITE_REAGENT':
-        return 'Compound Reagent';
-      case 'THERMOCYCLER':
-        return 'Thermocycler';
     }
   };
 

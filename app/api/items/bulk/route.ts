@@ -27,9 +27,18 @@ export async function POST(request: NextRequest) {
 
     // Create all items in a transaction
     const createdItems = await prisma.$transaction(
-      items.map((item: any) => {
-        const data: any = {
-          type: item.type as ItemType,
+      items.map((item: { 
+        type: ItemType; 
+        name: string; 
+        categories?: string[];
+        lotNumber?: string;
+        reagents?: unknown;
+        instrumentId?: string;
+        model?: string;
+        notes?: string;
+      }) => {
+        const data: Prisma.ItemCreateInput = {
+          type: item.type,
           name: item.name,
           categories: item.categories || [],
         };

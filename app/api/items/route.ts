@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     // Validate reagent references for composite reagents
     if (type === 'COMPOSITE_REAGENT' && reagents) {
-      const reagentIds = reagents.map((r: any) => r.reagentId);
+      const reagentIds = (reagents as Array<{ reagentId: string }>).map(r => r.reagentId);
       const existingReagents = await prisma.item.findMany({
         where: {
           id: { in: reagentIds },
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Create item
-    const data: any = {
+    const data: Prisma.ItemCreateInput = {
       type: type as ItemType,
       name,
       categories: categories || [],

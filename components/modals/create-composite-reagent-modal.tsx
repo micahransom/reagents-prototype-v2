@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import CategoryCombobox from "@/components/category-combobox";
 import { createItem, updateItem, deleteItem, getAllItems } from "@/lib/mock-db/db-helpers";
-import { Item, ReagentRow } from "@/lib/types";
+import { Item, ReagentRowWithId } from "@/lib/types";
 
 interface CreateCompositeReagentModalProps {
   isOpen: boolean;
@@ -35,7 +35,7 @@ export default function CreateCompositeReagentModal({
   const [categories, setCategories] = useState<string[]>([]);
   const [lotNumber, setLotNumber] = useState("");
   const [notes, setNotes] = useState("");
-  const [reagentRows, setReagentRows] = useState<ReagentRow[]>([
+  const [reagentRows, setReagentRows] = useState<ReagentRowWithId[]>([
     { id: 'temp-initial-row', reagentId: '', lotNumber: '', concentration: '', volume: '', notes: '' }
   ]);
   const [inputAnother, setInputAnother] = useState(false);
@@ -77,8 +77,14 @@ export default function CreateCompositeReagentModal({
         
         // Populate reagent rows
         if (editItem.reagents && Array.isArray(editItem.reagents)) {
-          const rows = editItem.reagents.map((r: any) => ({
-            id: r.id || `row-${Date.now()}-${Math.random()}`,
+          const rows = (editItem.reagents as Array<{
+            reagentId: string;
+            lotNumber?: string;
+            concentration?: string;
+            volume?: string;
+            notes?: string;
+          }>).map((r, index) => ({
+            id: `existing-${index}`,
             reagentId: r.reagentId || '',
             lotNumber: r.lotNumber || '',
             concentration: r.concentration || '',
@@ -104,7 +110,7 @@ export default function CreateCompositeReagentModal({
     }
   }, [isOpen, editItem]);
 
-  const handleRowChange = (rowId: string, field: keyof ReagentRow, value: string) => {
+  const handleRowChange = (rowId: string, field: keyof ReagentRowWithId, value: string) => {
     setReagentRows(prevRows => {
       const rowIndex = prevRows.findIndex(r => r.id === rowId);
       if (rowIndex === -1) return prevRows;
@@ -147,7 +153,7 @@ export default function CreateCompositeReagentModal({
     // Filter out empty rows (rows without a reagent selected)
     const validReagents = reagentRows
       .filter(row => row.reagentId) // Only keep rows with a reagent selected
-      .map(({ id, ...rest }) => rest);
+      .map(({ id: _id, ...rest }) => rest);
 
     if (validReagents.length === 0) {
       setError("At least one reagent is required");

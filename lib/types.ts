@@ -3,12 +3,16 @@
 export type ItemType = 'BASE_REAGENT' | 'COMPOSITE_REAGENT' | 'THERMOCYCLER';
 
 export interface ReagentRow {
-  id: string;
   reagentId: string;  // reference to base reagent Item
   lotNumber?: string;
   concentration?: string;
   volume?: string;
   notes?: string;
+}
+
+// Internal UI state for managing reagent rows (includes temporary ID)
+export interface ReagentRowWithId extends ReagentRow {
+  id: string;
 }
 
 export interface Item {
