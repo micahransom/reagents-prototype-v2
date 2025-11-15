@@ -153,7 +153,7 @@ export default function CreateCompositeReagentModal({
     // Filter out empty rows (rows without a reagent selected)
     const validReagents = reagentRows
       .filter(row => row.reagentId) // Only keep rows with a reagent selected
-      .map(({ id: _id, ...rest }) => rest);
+      .map(({ id, ...rest }) => rest); // eslint-disable-line @typescript-eslint/no-unused-vars
 
     if (validReagents.length === 0) {
       setError("At least one reagent is required");
