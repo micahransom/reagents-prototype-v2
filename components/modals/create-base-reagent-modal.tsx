@@ -99,9 +99,10 @@ export default function CreateBaseReagentModal({
   };
 
   const handleClose = () => {
-    if (!isSubmitting) {
-      onClose();
-    }
+    // Reset submitting state to ensure modal doesn't get stuck
+    setIsSubmitting(false);
+    setError(null);
+    onClose();
   };
 
   const handleDelete = async () => {
@@ -116,6 +117,7 @@ export default function CreateBaseReagentModal({
 
     try {
       await deleteItem(editItem.id);
+      setIsSubmitting(false);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {

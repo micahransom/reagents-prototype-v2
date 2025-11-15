@@ -211,9 +211,10 @@ export default function CreateCompositeReagentModal({
   };
 
   const handleClose = () => {
-    if (!isSubmitting) {
-      onClose();
-    }
+    // Reset submitting state to ensure modal doesn't get stuck
+    setIsSubmitting(false);
+    setError(null);
+    onClose();
   };
 
   const handleDelete = async () => {
@@ -228,6 +229,7 @@ export default function CreateCompositeReagentModal({
 
     try {
       await deleteItem(editItem.id);
+      setIsSubmitting(false);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
