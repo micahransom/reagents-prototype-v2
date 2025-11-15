@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Item } from "@/lib/types";
-import { getAllCategories, getItemsByCategory } from "@/lib/mock-db/db-helpers";
+import { getAllItems } from "@/lib/mock-db/db-helpers";
 import { TagInput } from "@/components/ui/tag-input";
 
 interface TagOption {
@@ -32,17 +32,15 @@ export function ItemSelect({
     const loadData = async () => {
       setLoading(true);
       try {
-        const cats = await getAllCategories();
-
-        const targetCategories = categoryIds 
-          ? cats.filter(c => categoryIds.includes(c.id))
-          : cats;
-
-        const itemsPromises = targetCategories.map(cat => 
-          getItemsByCategory(cat.id)
-        );
-        const itemsArrays = await Promise.all(itemsPromises);
-        const items = itemsArrays.flat();
+        // Get all items, optionally filtered by category
+        const allItemsData = await getAllItems();
+        
+        // Filter by categories if specified
+        const items = categoryIds && categoryIds.length > 0
+          ? allItemsData.filter(item => 
+              item.categories.some(cat => categoryIds.includes(cat))
+            )
+          : allItemsData;
         
         setAllItems(items);
       } catch (error) {
@@ -59,12 +57,9 @@ export function ItemSelect({
     if (loading) return [];
     
     return allItems.map(item => {
-      // Item name is stored in formData._itemName
-      const label = item.formData._itemName || item.id;
-      
       return {
         id: item.id,
-        label,
+        label: item.name,
       };
     }).sort((a, b) => a.label.localeCompare(b.label));
   }, [allItems, loading]);
