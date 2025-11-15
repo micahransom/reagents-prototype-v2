@@ -6,7 +6,7 @@ interface CreationMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectType: (type: 'BASE_REAGENT' | 'COMPOSITE_REAGENT' | 'THERMOCYCLER') => void;
-  buttonRef: React.RefObject<HTMLButtonElement>;
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 export default function CreationMenu({
