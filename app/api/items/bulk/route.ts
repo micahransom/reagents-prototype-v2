@@ -27,20 +27,21 @@ export async function POST(request: NextRequest) {
 
     // Create all items in a transaction
     const createdItems = await prisma.$transaction(
-      items.map((item: any) =>
-        prisma.item.create({
-          data: {
-            type: item.type as ItemType,
-            name: item.name,
-            categories: item.categories || [],
-            lotNumber: item.lotNumber || null,
-            reagents: item.reagents ? (item.reagents as Prisma.InputJsonValue) : null,
-            instrumentId: item.instrumentId || null,
-            model: item.model || null,
-            notes: item.notes || null,
-          },
-        })
-      )
+      items.map((item: any) => {
+        const data: any = {
+          type: item.type as ItemType,
+          name: item.name,
+          categories: item.categories || [],
+        };
+        
+        if (item.lotNumber) data.lotNumber = item.lotNumber;
+        if (item.reagents) data.reagents = item.reagents as Prisma.InputJsonValue;
+        if (item.instrumentId) data.instrumentId = item.instrumentId;
+        if (item.model) data.model = item.model;
+        if (item.notes) data.notes = item.notes;
+        
+        return prisma.item.create({ data });
+      })
     );
     
     return NextResponse.json(createdItems, { status: 201 });

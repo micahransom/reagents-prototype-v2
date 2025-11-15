@@ -110,18 +110,19 @@ export async function POST(request: NextRequest) {
     }
     
     // Create item
-    const item = await prisma.item.create({
-      data: {
-        type: type as ItemType,
-        name,
-        categories: categories || [],
-        lotNumber: lotNumber || null,
-        reagents: reagents ? (reagents as Prisma.InputJsonValue) : null,
-        instrumentId: instrumentId || null,
-        model: model || null,
-        notes: notes || null,
-      },
-    });
+    const data: any = {
+      type: type as ItemType,
+      name,
+      categories: categories || [],
+    };
+    
+    if (lotNumber) data.lotNumber = lotNumber;
+    if (reagents) data.reagents = reagents as Prisma.InputJsonValue;
+    if (instrumentId) data.instrumentId = instrumentId;
+    if (model) data.model = model;
+    if (notes) data.notes = notes;
+    
+    const item = await prisma.item.create({ data });
     
     return NextResponse.json(item, { status: 201 });
   } catch (error) {
