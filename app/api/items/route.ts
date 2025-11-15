@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       const existingReagents = await prisma.item.findMany({
         where: {
           id: { in: reagentIds },
-          type: 'BASE_REAGENT',
+          type: { in: ['BASE_REAGENT', 'COMPOSITE_REAGENT'] },
         },
       });
 

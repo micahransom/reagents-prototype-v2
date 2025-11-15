@@ -46,24 +46,27 @@ export default function CreateCompositeReagentModal({
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
   const [focusedRow, setFocusedRow] = useState<string | null>(null);
 
-  // Load all reagents (base and compound) for selection
+  // Load all reagents (base and compound) for selection - reload when modal opens
   useEffect(() => {
-    const loadReagents = async () => {
-      try {
-        const allItems = await getAllItems();
-        // Filter to only base and compound reagents
-        const reagents = allItems.filter(
-          item => item.type === 'BASE_REAGENT' || item.type === 'COMPOSITE_REAGENT'
-        );
-        setBaseReagents(reagents);
-      } catch (error) {
-        console.error('Failed to load reagents:', error);
-      } finally {
-        setLoadingReagents(false);
-      }
-    };
-    loadReagents();
-  }, []);
+    if (isOpen) {
+      const loadReagents = async () => {
+        setLoadingReagents(true);
+        try {
+          const allItems = await getAllItems();
+          // Filter to only base and compound reagents
+          const reagents = allItems.filter(
+            item => item.type === 'BASE_REAGENT' || item.type === 'COMPOSITE_REAGENT'
+          );
+          setBaseReagents(reagents);
+        } catch (error) {
+          console.error('Failed to load reagents:', error);
+        } finally {
+          setLoadingReagents(false);
+        }
+      };
+      loadReagents();
+    }
+  }, [isOpen]);
 
   // Reset form when modal opens or editItem changes
   useEffect(() => {
