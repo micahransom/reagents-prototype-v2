@@ -33,18 +33,14 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    if (dateAfter) {
-      where.updatedAt = {
-        ...where.updatedAt,
-        gte: new Date(dateAfter),
-      };
-    }
-
-    if (dateBefore) {
-      where.updatedAt = {
-        ...where.updatedAt,
-        lte: new Date(dateBefore),
-      };
+    if (dateAfter || dateBefore) {
+      where.updatedAt = {};
+      if (dateAfter) {
+        where.updatedAt.gte = new Date(dateAfter);
+      }
+      if (dateBefore) {
+        where.updatedAt.lte = new Date(dateBefore);
+      }
     }
     
     const items = await prisma.item.findMany({
