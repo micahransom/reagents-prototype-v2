@@ -47,6 +47,7 @@ export default function CreateCompositeReagentModal({
   const [focusedRow, setFocusedRow] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load all reagents (base and compound) for selection - reload when modal opens
   useEffect(() => {
@@ -69,6 +70,15 @@ export default function CreateCompositeReagentModal({
       loadReagents();
     }
   }, [isOpen]);
+
+  // Cleanup blur timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Reset form when modal opens or editItem changes
   useEffect(() => {
@@ -374,6 +384,11 @@ export default function CreateCompositeReagentModal({
                                     }
                                   }}
                                   onFocus={(e) => {
+                                    // Clear any pending blur timeout
+                                    if (blurTimeoutRef.current) {
+                                      clearTimeout(blurTimeoutRef.current);
+                                      blurTimeoutRef.current = null;
+                                    }
                                     setFocusedRow(row.id);
                                     const rect = e.target.getBoundingClientRect();
                                     setDropdownPosition({
@@ -383,7 +398,7 @@ export default function CreateCompositeReagentModal({
                                   }}
                                   onBlur={() => {
                                     // Delay to allow click on dropdown item
-                                    setTimeout(() => {
+                                    blurTimeoutRef.current = setTimeout(() => {
                                       setFocusedRow(null);
                                       setDropdownPosition(null);
                                     }, 200);
@@ -405,9 +420,15 @@ export default function CreateCompositeReagentModal({
                                         type="button"
                                         onMouseDown={(e) => {
                                           e.preventDefault(); // Prevent blur
+                                          // Clear the blur timeout
+                                          if (blurTimeoutRef.current) {
+                                            clearTimeout(blurTimeoutRef.current);
+                                            blurTimeoutRef.current = null;
+                                          }
                                           handleRowChange(row.id, 'reagentId', reagent.id);
                                           setSearchTerms(prev => ({ ...prev, [row.id]: '' }));
                                           setFocusedRow(null);
+                                          setDropdownPosition(null);
                                         }}
                                         className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 border-b last:border-b-0"
                                       >
