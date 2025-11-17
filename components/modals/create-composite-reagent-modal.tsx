@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,8 @@ export default function CreateCompositeReagentModal({
   const [loadingReagents, setLoadingReagents] = useState(true);
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
   const [focusedRow, setFocusedRow] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Load all reagents (base and compound) for selection - reload when modal opens
   useEffect(() => {
@@ -249,8 +251,8 @@ export default function CreateCompositeReagentModal({
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-[948px] w-full max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="bg-white rounded-lg shadow-xl max-w-[948px] w-full my-8">
           {/* Header */}
           <div className="flex items-start justify-between p-6 pb-4">
             <h2 className="text-lg font-semibold text-slate-950">
@@ -327,7 +329,8 @@ export default function CreateCompositeReagentModal({
                   <Label className="text-sm font-medium text-slate-950">
                     Reagents
                   </Label>
-                  <div className="border rounded-lg overflow-x-auto">
+                  <div className="border rounded-lg">
+                    <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -361,6 +364,7 @@ export default function CreateCompositeReagentModal({
                             <TableCell>
                               <div className="relative">
                                 <input
+                                  ref={(el) => { inputRefs.current[row.id] = el; }}
                                   type="text"
                                   value={selectedReagent ? selectedReagent.name : searchTerm}
                                   onChange={(e) => {
@@ -369,19 +373,32 @@ export default function CreateCompositeReagentModal({
                                       handleRowChange(row.id, 'reagentId', '');
                                     }
                                   }}
-                                  onFocus={() => {
+                                  onFocus={(e) => {
                                     setFocusedRow(row.id);
+                                    const rect = e.target.getBoundingClientRect();
+                                    setDropdownPosition({
+                                      top: rect.bottom + 4,
+                                      left: rect.left
+                                    });
                                   }}
                                   onBlur={() => {
                                     // Delay to allow click on dropdown item
-                                    setTimeout(() => setFocusedRow(null), 200);
+                                    setTimeout(() => {
+                                      setFocusedRow(null);
+                                      setDropdownPosition(null);
+                                    }, 200);
                                   }}
                                   placeholder="Type to search..."
                                   disabled={isSubmitting || loadingReagents}
                                   className="w-full border-none bg-transparent text-sm focus:outline-none focus:ring-0 p-2"
                                 />
-                                {showDropdown && (
-                                  <div className="absolute top-full left-0 w-[300px] mt-1 bg-white border border-slate-300 rounded-md shadow-lg max-h-[200px] overflow-y-auto z-[100]">
+                                {showDropdown && dropdownPosition && (
+                                  <div className="fixed w-[300px] bg-white border border-slate-300 rounded-md shadow-lg max-h-[200px] overflow-y-auto z-[9999]"
+                                    style={{
+                                      top: `${dropdownPosition.top}px`,
+                                      left: `${dropdownPosition.left}px`
+                                    }}
+                                  >
                                     {filteredReagents.map(reagent => (
                                       <button
                                         key={reagent.id}
@@ -459,6 +476,7 @@ export default function CreateCompositeReagentModal({
                         })}
                       </TableBody>
                     </Table>
+                    </div>
                   </div>
                 </div>
 
