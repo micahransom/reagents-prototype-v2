@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Search, ChevronRight, ChevronDown, Plus } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Search, ChevronRight, ChevronDown, Plus, ListFilter, ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,13 +15,14 @@ import {
 } from "@/components/ui/table";
 import Navigation from "@/components/navigation";
 import { Item, ItemType } from "@/lib/types";
-import { getAllItems } from "@/lib/mock-db/db-helpers";
+import { getAllItems, ItemFilters } from "@/lib/mock-db/db-helpers";
 import CreationMenu from "@/components/creation-menu";
 import CreateBaseReagentModal from "@/components/modals/create-base-reagent-modal";
 import CreateCompositeReagentModal from "@/components/modals/create-composite-reagent-modal";
 import CreateThermocyclerModal from "@/components/modals/create-thermocycler-modal";
 import BulkUploadModal from "@/components/modals/bulk-upload-modal";
 import { TableSkeleton } from "@/components/ui/skeleton";
+import ReagentsFilterSidebar from "@/components/reagents-filter-sidebar";
 
 export default function ReagentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,21 +38,93 @@ export default function ReagentsPage() {
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const newButtonRef = useRef<HTMLButtonElement>(null);
 
-  const loadData = async () => {
+  // Filter state
+  const [filterSidebarOpen, setFilterSidebarOpen] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [editedBefore, setEditedBefore] = useState<Date | undefined>(undefined);
+  const [editedAfter, setEditedAfter] = useState<Date | undefined>(undefined);
+
+  // Column sorting
+  type SortColumn = "name" | "referenced" | "edited";
+  const [sortColumn, setSortColumn] = useState<SortColumn>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  // Sort items based on column and direction
+  const sortItems = useCallback((items: Item[], column: SortColumn, direction: "asc" | "desc"): Item[] => {
+    const sorted = [...items];
+    
+    switch (column) {
+      case "name":
+        return sorted.sort((a, b) => 
+          direction === "asc" 
+            ? a.name.localeCompare(b.name) 
+            : b.name.localeCompare(a.name)
+        );
+      case "edited":
+        return sorted.sort((a, b) => 
+          direction === "asc"
+            ? new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+            : new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+      case "referenced":
+        return sorted.sort((a, b) => 
+          direction === "asc"
+            ? (a.timesReferenced || 0) - (b.timesReferenced || 0)
+            : (b.timesReferenced || 0) - (a.timesReferenced || 0)
+        );
+      default:
+        return sorted;
+    }
+  }, []);
+
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const allItems = await getAllItems();
+      // Apply filters to API call
+      const filters: ItemFilters = {};
+      
+      if (selectedCategories.length > 0) {
+        filters.categories = selectedCategories;
+      }
+      
+      if (editedBefore) {
+        filters.dateBefore = editedBefore.toISOString();
+      }
+      
+      if (editedAfter) {
+        filters.dateAfter = editedAfter.toISOString();
+      }
+      
+      if (searchQuery) {
+        filters.search = searchQuery;
+      }
+      
+      let allItems = await getAllItems(Object.keys(filters).length > 0 ? filters : undefined);
+      
+      // Apply client-side sorting
+      allItems = sortItems(allItems, sortColumn, sortDirection);
+      
       setItems(allItems);
+      
+      // Auto-expand folders that have items when filters are active
+      const hasActiveFilters = selectedCategories.length > 0 || editedBefore || editedAfter || searchQuery;
+      if (hasActiveFilters && allItems.length > 0) {
+        const foldersWithItems = new Set<ItemType>();
+        allItems.forEach(item => {
+          foldersWithItems.add(item.type);
+        });
+        setExpandedFolders(foldersWithItems);
+      }
     } catch (error) {
       console.error("Failed to load items:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedCategories, editedBefore, editedAfter, searchQuery, sortColumn, sortDirection, sortItems]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleCreationTypeSelect = (type: ItemType) => {
     setEditingItem(null); // Clear any editing state
@@ -112,6 +185,26 @@ export default function ReagentsPage() {
     }
   };
 
+  const handleColumnSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Set new column and default to ascending
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (column: SortColumn) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="w-4 h-4 text-muted-foreground" />;
+    }
+    return sortDirection === "asc" 
+      ? <ArrowUp className="w-4 h-4" />
+      : <ArrowDown className="w-4 h-4" />;
+  };
+
   // Group items by type
   const itemsByType = {
     COMPOSITE_REAGENT: items.filter(item => item.type === 'COMPOSITE_REAGENT'),
@@ -134,6 +227,24 @@ export default function ReagentsPage() {
   // The three fixed folders in order
   const folders: ItemType[] = ['BASE_REAGENT', 'COMPOSITE_REAGENT', 'THERMOCYCLER'];
 
+  // Count active filters
+  const activeFilterCount = 
+    selectedCategories.length + 
+    (editedBefore ? 1 : 0) + 
+    (editedAfter ? 1 : 0);
+
+  const handleRemoveCategory = (categoryName: string) => {
+    setSelectedCategories(selectedCategories.filter((c) => c !== categoryName));
+  };
+
+  const handleClearDateBefore = () => {
+    setEditedBefore(undefined);
+  };
+
+  const handleClearDateAfter = () => {
+    setEditedAfter(undefined);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation activePage="items" />
@@ -151,6 +262,20 @@ export default function ReagentsPage() {
         {/* Filter Section */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-2"
+              onClick={() => setFilterSidebarOpen(true)}
+            >
+              <ListFilter className="w-4 h-4" />
+              <span className="text-xs font-medium">Filter</span>
+              {activeFilterCount > 0 && (
+                <span className="bg-primary text-primary-foreground text-xs font-semibold rounded-full h-4 min-w-5 px-1 flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
             <div className="w-[373px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -175,20 +300,93 @@ export default function ReagentsPage() {
           </Button>
         </div>
 
+        {/* Applied Filters */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {selectedCategories.map((category) => (
+              <Badge
+                key={category}
+                variant="secondary"
+                className="gap-1 px-2 py-1 h-9 text-xs font-semibold"
+              >
+                <button
+                  onClick={() => handleRemoveCategory(category)}
+                  className="hover:opacity-70"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                {category}
+              </Badge>
+            ))}
+            {editedBefore && (
+              <Badge
+                variant="secondary"
+                className="gap-1 px-2 py-1 h-9 text-xs font-semibold"
+              >
+                <button
+                  onClick={handleClearDateBefore}
+                  className="hover:opacity-70"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                Before {editedBefore.toLocaleDateString()}
+              </Badge>
+            )}
+            {editedAfter && (
+              <Badge
+                variant="secondary"
+                className="gap-1 px-2 py-1 h-9 text-xs font-semibold"
+              >
+                <button
+                  onClick={handleClearDateAfter}
+                  className="hover:opacity-70"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                After {editedAfter.toLocaleDateString()}
+              </Badge>
+            )}
+          </div>
+        )}
+
         {/* Loading State */}
         {isLoading ? (
           <TableSkeleton rows={10} columns={5} />
         ) : (
           /* Table */
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-x-auto">
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="border-b">
                   <TableHead className="w-[40px] border-0 px-2"></TableHead>
-                  <TableHead className="w-[443px] border-0 px-4">Name</TableHead>
+                  <TableHead 
+                    className="w-[443px] border-0 px-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => handleColumnSort("name")}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Name</span>
+                      {getSortIcon("name")}
+                    </div>
+                  </TableHead>
                   <TableHead className="w-[244px] border-0 px-4">Category</TableHead>
-                  <TableHead className="w-[244px] border-0 px-4">Times Referenced</TableHead>
-                  <TableHead className="w-[244px] border-0 px-4">Last Edited</TableHead>
+                  <TableHead 
+                    className="w-[244px] border-0 px-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => handleColumnSort("referenced")}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Times Referenced</span>
+                      {getSortIcon("referenced")}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="w-[244px] border-0 px-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => handleColumnSort("edited")}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Last Edited</span>
+                      {getSortIcon("edited")}
+                    </div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -327,6 +525,18 @@ export default function ReagentsPage() {
         onClose={() => setBulkUploadModalOpen(false)}
         onSuccess={loadData}
         type={bulkUploadType}
+      />
+
+      {/* Filter Sidebar */}
+      <ReagentsFilterSidebar
+        isOpen={filterSidebarOpen}
+        onClose={() => setFilterSidebarOpen(false)}
+        selectedCategories={selectedCategories}
+        onCategoriesChange={setSelectedCategories}
+        editedBefore={editedBefore}
+        onEditedBeforeChange={setEditedBefore}
+        editedAfter={editedAfter}
+        onEditedAfterChange={setEditedAfter}
       />
     </div>
   );

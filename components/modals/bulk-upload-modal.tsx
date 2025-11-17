@@ -198,7 +198,7 @@ export default function BulkUploadModal({
               </p>
 
               {/* Table */}
-              <div className="border rounded-lg overflow-visible">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>

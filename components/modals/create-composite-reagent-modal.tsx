@@ -327,7 +327,7 @@ export default function CreateCompositeReagentModal({
                   <Label className="text-sm font-medium text-slate-950">
                     Reagents
                   </Label>
-                  <div className="border rounded-lg overflow-visible">
+                  <div className="border rounded-lg overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>

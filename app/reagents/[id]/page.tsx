@@ -128,7 +128,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             {item.type === 'COMPOSITE_REAGENT' && item.reagents && (
               <div>
                 <h3 className="text-sm font-medium text-slate-500 mb-3">Reagents</h3>
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border rounded-lg overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-slate-50">
                       <tr>
